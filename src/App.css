@@ -1,0 +1,336 @@
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+
+  h1 {
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    margin: 0;
+  }
+}
+
+.azioni {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  font: inherit;
+  font-size: 15px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-border);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+main {
+  display: flex;
+  flex-wrap: wrap;
+  flex-grow: 1;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+  }
+}
+
+.vista-3d {
+  flex: 1 1 100%;
+  min-width: 0;
+  height: 520px;
+  border-top: 1px solid var(--border);
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/* In alto la famiglia y, sotto x a sinistra e z a destra, con le orbite intrecciate in mezzo */
+.vista-orbite {
+  flex: 1 1 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'y y y'
+    'x intreccio z';
+  align-items: center;
+  gap: 8px 16px;
+  padding: 16px 24px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'y' 'intreccio' 'x' 'z';
+    padding: 16px;
+  }
+}
+
+.gruppo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  h2 {
+    margin: 0;
+    font-family: var(--mono);
+  }
+}
+
+.gruppo-y {
+  grid-area: y;
+}
+.gruppo-x {
+  grid-area: x;
+}
+.gruppo-z {
+  grid-area: z;
+}
+
+.anelli {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+@media (min-width: 901px) {
+  .gruppo-x .anelli,
+  .gruppo-z .anelli {
+    flex-direction: column;
+  }
+}
+
+.anello {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+
+  svg {
+    width: 132px;
+    height: 132px;
+
+    @media (max-width: 480px) {
+      width: 92px;
+      height: 92px;
+    }
+  }
+}
+
+.anello-nome {
+  font-size: 11px;
+  fill: var(--text);
+}
+
+.anello-comandi {
+  display: flex;
+  gap: 6px;
+}
+
+.vista-intreccio {
+  grid-area: intreccio;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.intreccio-famiglia {
+  font: 600 26px var(--mono);
+  fill: var(--text-h);
+  pointer-events: none;
+}
+
+.intreccio {
+  width: 100%;
+  max-width: 620px;
+}
+
+.cerchio {
+  cursor: pointer;
+}
+
+.cerchio-linea {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2;
+  transition: stroke 0.15s;
+}
+
+/* Fascia invisibile più larga, per cliccare il cerchio senza mirare la linea */
+.cerchio-presa {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22;
+  pointer-events: stroke;
+}
+
+.cerchio:hover .cerchio-linea,
+.cerchio.attivo .cerchio-linea {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.adesivo {
+  stroke: var(--bg);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.anello {
+  padding: 6px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+
+  path {
+    transition: opacity 0.15s;
+  }
+}
+
+.anello.puntato {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.adesivo {
+  transition: opacity 0.15s;
+}
+
+/* Caselle che la mossa evidenziata non tocca */
+.spento {
+  opacity: 0.18;
+}
+
+.azioni {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  button[aria-pressed='true'] {
+    border-color: var(--accent);
+  }
+}
+
+.barra {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 15px;
+
+  &.errore p {
+    color: #c62828;
+  }
+}
+
+.tavolozza {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.campione {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-h);
+  background: none;
+  border-color: var(--border);
+
+  &.scelto {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
+}
+
+.campione-colore {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.conteggio-errato {
+  color: #c62828;
+}
+
+.soluzione-testa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.passi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: passo;
+
+  li {
+    counter-increment: passo;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+    white-space: nowrap;
+
+    &::before {
+      content: counter(passo) '. ';
+      opacity: 0.6;
+    }
+    &.fatto {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+    &.corrente {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--accent-bg);
+    }
+  }
+}
+
+/* Mentre si copia un cubo reale le caselle si cliccano, i cerchi no */
+.in-copia path,
+.in-copia .adesivo {
+  cursor: crosshair;
+  pointer-events: auto;
+}
+
+.in-copia .cerchio {
+  pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .barra.errore p,
+  .conteggio-errato {
+    color: #ff8a80;
+  }
+}
