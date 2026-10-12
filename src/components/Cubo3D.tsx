@@ -1,6 +1,6 @@
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { CanvasTexture, type Group } from 'three'
 import { colori } from '../constants/colori.ts'
 import {
@@ -186,6 +186,12 @@ function Assi() {
   })
 }
 
+// Rimpicciolisce la scena quando la tela è stretta, così cubo e assi non escono dai lati
+function Scena({ children }: { children: ReactNode }) {
+  const proporzione = useThree((stato) => stato.size.width / stato.size.height)
+  return <group scale={Math.min(1, proporzione / 1.15)}>{children}</group>
+}
+
 function Controlli({ onCamera }: { onCamera: (posizione: Vettore) => void }) {
   const camera = useThree((stato) => stato.camera)
   return (
@@ -206,8 +212,10 @@ interface Cubo3DProps extends CubettiProps {
 export function Cubo3D({ cameraIniziale, onCamera, ...cubetti }: Cubo3DProps) {
   return (
     <Canvas camera={{ position: cameraIniziale, fov: 40 }}>
-      <Cubetti {...cubetti} />
-      <Assi />
+      <Scena>
+        <Cubetti {...cubetti} />
+        <Assi />
+      </Scena>
       <Controlli onCamera={onCamera} />
     </Canvas>
   )
