@@ -2,6 +2,7 @@ import type { Orbita } from '../modello/cubo.ts'
 import type { Passo } from '../risolutore/notazione.ts'
 
 interface BarraSoluzioneProps {
+  titolo?: string // nome della sequenza in esecuzione, assente per la soluzione calcolata
   passi: Passo[]
   fatti: number
   bloccato: boolean
@@ -9,7 +10,7 @@ interface BarraSoluzioneProps {
   onPunta: (orbita: Orbita | null) => void
 }
 
-export function BarraSoluzione({ passi, fatti, bloccato, onProssimo, onPunta }: BarraSoluzioneProps) {
+export function BarraSoluzione({ titolo, passi, fatti, bloccato, onProssimo, onPunta }: BarraSoluzioneProps) {
   if (passi.length === 0)
     return (
       <div className="barra">
@@ -20,7 +21,10 @@ export function BarraSoluzione({ passi, fatti, bloccato, onProssimo, onPunta }: 
   return (
     <div className="barra">
       <div className="soluzione-testa">
-        <p>{finita ? `Fatto: ${passi.length} passi.` : `Passo ${fatti + 1} di ${passi.length}`}</p>
+        <p>
+          {titolo && <strong>{titolo}: </strong>}
+          {finita ? `Fatto: ${passi.length} passi.` : `Passo ${fatti + 1} di ${passi.length}`}
+        </p>
         <button type="button" disabled={bloccato || finita} onClick={onProssimo}>
           Passo successivo
         </button>
