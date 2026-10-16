@@ -20,7 +20,9 @@ import { creaSequenza, inPassi, rollback, type Sequenza } from './modello/sequen
 import { leggiScena, salvaScena } from './persistenza/cookie.ts'
 import { decodifica, leggiSequenze, salvaSequenze, scaricaSequenze, unisci } from './persistenza/sequenze.ts'
 import { contaColori, type Passo } from './risolutore/notazione.ts'
-import { risolvi } from './risolutore/risolvi.ts'
+import { cercaPiuCorta, interrompiRicerca, risolvi } from './risolutore/risolvi.ts'
+
+const DURATA_RICERCA = 30_000 // ms
 
 function App() {
   const [scenaIniziale] = useState(leggiScena)
@@ -30,7 +32,9 @@ function App() {
   const [puntata, setPuntata] = useState<Orbita | null>(null)
   const [inCopia, setInCopia] = useState(false)
   const [pennello, setPennello] = useState<Colore>(cuboOrdinato[0])
-  const [soluzione, setSoluzione] = useState<{ passi: Passo[]; fatti: number; titolo?: string } | null>(null)
+  const [soluzione, setSoluzione] = useState<{ passi: Passo[]; fatti: number; titolo?: string; nota?: string } | null>(
+    null,
+  )
   const [sequenze, setSequenze] = useState(leggiSequenze)
   const [elencoAperto, setElencoAperto] = useState(false)
   // Registrazione in corso: il cubo com'era all'avvio e le mosse fatte da allora
@@ -38,12 +42,13 @@ function App() {
     null,
   )
   const [inCalcolo, setInCalcolo] = useState(false)
+  const [inRicerca, setInRicerca] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
   const camera = useRef(scenaIniziale.camera)
 
   // Orbita messa in risalto nelle tre viste: quella in movimento o quella sotto il mouse
   const evidenziata = inCopia ? null : (animazione?.orbita ?? puntata)
-  const bloccato = animazione !== null || inCalcolo
+  const bloccato = animazione !== null || inCalcolo || inRicerca
   // Mentre si registra il cubo cambia solo con le mosse sulle orbite
   const occupato = bloccato || registrazione !== null
 
@@ -104,6 +109,25 @@ function App() {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
       setInCalcolo(false)
+    }
+  }
+
+  async function cercaSoluzionePiuCorta() {
+    if (!soluzione) return
+    const prima = soluzione.passi.length
+    setErrore(null)
+    setInRicerca(true)
+    try {
+      const passi = await cercaPiuCorta(cubo, soluzione.passi, DURATA_RICERCA)
+      const nota =
+        passi.length < prima
+          ? `Trovata una soluzione più corta: da ${prima} a ${passi.length} passi.`
+          : 'Nessuna soluzione più corta trovata.'
+      setSoluzione({ passi, fatti: 0, nota })
+    } catch (problema) {
+      setErrore(problema instanceof Error ? problema.message : String(problema))
+    } finally {
+      setInRicerca(false)
     }
   }
 
@@ -231,6 +255,11 @@ function App() {
       {soluzione && (
         <BarraSoluzione
           titolo={soluzione.titolo}
+          nota={soluzione.nota}
+          inRicerca={inRicerca}
+          secondiRicerca={DURATA_RICERCA / 1000}
+          onPiuCorta={soluzione.titolo === undefined && soluzione.fatti === 0 ? cercaSoluzionePiuCorta : undefined}
+          onInterrompi={interrompiRicerca}
           passi={soluzione.passi}
           fatti={soluzione.fatti}
           bloccato={bloccato}

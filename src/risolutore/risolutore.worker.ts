@@ -11,7 +11,13 @@ new Function(sorgenteRisolutore).call(ambito)
 const Cube = ambito.Cube
 type Cube = CubeTipo
 
-export type Risposta = { mosse: string } | { errore: string }
+// Con `massimo` si chiede una soluzione di al più tante mosse di faccia
+export interface Richiesta {
+  caselle: string
+  massimo?: number
+}
+
+export type Risposta = { mosse: string } | { nessuna: true } | { errore: string }
 
 const IMPOSSIBILE = 'Questa disposizione non esiste su un cubo reale: controlla i colori copiati.'
 
@@ -29,9 +35,19 @@ function risolvibile(cubo: Cube): boolean {
   return somma(cubo.co) % 3 === 0 && somma(cubo.eo) % 2 === 0 && scambiPari(cubo.cp) === scambiPari(cubo.ep)
 }
 
+// cubejs, se entro il massimo non trova nulla, si interrompe con un errore
+function cerca(cubo: Cube, massimo?: number): Risposta {
+  if (massimo === undefined) return { mosse: cubo.solveUpright() }
+  try {
+    return { mosse: cubo.solveUpright(massimo) }
+  } catch {
+    return { nessuna: true }
+  }
+}
+
 let tabellePronte = false
 
-self.onmessage = ({ data: caselle }: MessageEvent<string>) => {
+self.onmessage = ({ data: { caselle, massimo } }: MessageEvent<Richiesta>) => {
   let risposta: Risposta
   try {
     const cubo = Cube.fromString(caselle)
@@ -43,7 +59,7 @@ self.onmessage = ({ data: caselle }: MessageEvent<string>) => {
         Cube.initSolver()
         tabellePronte = true
       }
-      risposta = { mosse: cubo.solveUpright() }
+      risposta = cerca(cubo, massimo)
     }
   } catch {
     risposta = { errore: IMPOSSIBILE }
