@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Cubo3D } from '../components/Cubo3D.tsx'
 import type { Colore } from '../modello/cubo.ts'
-import { CAMERA_PREDEFINITA } from '../persistenza/cookie.ts'
+import { CAMERA_PREDEFINITA, leggiScena, salvaScena } from '../persistenza/cookie.ts'
 import dati from './categorie.json'
 import { Sviluppo } from './Sviluppo.tsx'
 
@@ -28,6 +28,12 @@ export function Studio() {
   const { cubo, blocco } = categoria.esempi[Math.min(esempio, categoria.esempi.length - 1)]
   const accesi = evidenzia ? blocco : undefined
   const anteprime = useMemo(() => categorie.map((c) => c.esempi[0]), [])
+
+  // La pagina principale legge il cubo dal cookie quando si apre: basta salvarlo e tornarci
+  function portaNelCubo() {
+    salvaScena({ cubo, camera: leggiScena().camera })
+    location.hash = ''
+  }
 
   function scegli(indice: number) {
     setScelta(indice)
@@ -81,6 +87,9 @@ export function Studio() {
                 ))}
               <button type="button" aria-pressed={evidenzia} onClick={() => setEvidenzia(!evidenzia)}>
                 Evidenzia blocco intatto
+              </button>
+              <button type="button" onClick={portaNelCubo}>
+                Porta nel cubo
               </button>
             </div>
           </div>
