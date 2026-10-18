@@ -29,10 +29,11 @@ export function Studio() {
   const accesi = evidenzia ? blocco : undefined
   const anteprime = useMemo(() => categorie.map((c) => c.esempi[0]), [])
 
-  // La pagina principale legge il cubo dal cookie quando si apre: basta salvarlo e tornarci
+  // La pagina principale legge il cubo dal cookie quando si apre: lo si salva e la si apre in una scheda nuova,
+  // mentre lo studio resta aperto qui
   function portaNelCubo() {
     salvaScena({ cubo, camera: leggiScena().camera })
-    location.hash = ''
+    window.open(location.pathname, '_blank')
   }
 
   function scegli(indice: number) {
