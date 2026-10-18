@@ -213,6 +213,9 @@ function App() {
           >
             Registra
           </button>
+          <a className="pulsante" href="#studio">
+            Studio
+          </a>
           <button type="button" aria-pressed={elencoAperto} onClick={() => setElencoAperto(!elencoAperto)}>
             Sequenze ({sequenze.length})
           </button>

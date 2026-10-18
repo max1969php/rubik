@@ -33,7 +33,7 @@ const FACCE: Faccia[] = [
 ]
 
 // Indice di adesivo per ognuna delle 54 caselle, nell'ordine del risolutore
-const CASELLE: number[] = FACCE.flatMap((faccia) =>
+export const CASELLE: number[] = FACCE.flatMap((faccia) =>
   Array.from({ length: 9 }, (_, k) => indiceDi(faccia.casella(Math.floor(k / 3), k % 3), faccia.asse)),
 )
 const CENTRI = FACCE.map((_, f) => CASELLE[f * 9 + 4])

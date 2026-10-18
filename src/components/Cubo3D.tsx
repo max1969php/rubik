@@ -79,11 +79,12 @@ interface CubettiProps {
   cubo: Colore[]
   animazione: Mossa | null
   evidenziata: Orbita | null
+  accesi?: ReadonlySet<number> // se presente, gli altri adesivi sono spenti
   onFineMossa: () => void
   onDipingi?: (indice: number) => void
 }
 
-function Cubetti({ cubo, animazione, evidenziata, onFineMossa, onDipingi }: CubettiProps) {
+function Cubetti({ cubo, animazione, evidenziata, accesi, onFineMossa, onDipingi }: CubettiProps) {
   // Ogni cubetto ha un perno nell'origine: ruotando il perno gira attorno al centro del cubo
   const perni = useRef<(Group | null)[]>([])
   const inizio = useRef<number | null>(null)
@@ -130,7 +131,7 @@ function Cubetti({ cubo, animazione, evidenziata, onFineMossa, onDipingi }: Cube
             key={indice}
             indice={indice}
             colore={cubo[indice]}
-            spento={evidenziata !== null && !nelloStrato(indice, evidenziata)}
+            spento={(evidenziata !== null && !nelloStrato(indice, evidenziata)) || (accesi !== undefined && !accesi.has(indice))}
             onDipingi={onDipingi}
           />
         ))}
