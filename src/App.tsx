@@ -216,6 +216,9 @@ function App() {
           <a className="pulsante" href="#studio">
             Studio
           </a>
+          <a className="pulsante" href="#confronto">
+            Confronto
+          </a>
           <button type="button" aria-pressed={elencoAperto} onClick={() => setElencoAperto(!elencoAperto)}>
             Sequenze ({sequenze.length})
           </button>

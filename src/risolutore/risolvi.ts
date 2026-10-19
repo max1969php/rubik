@@ -1,4 +1,4 @@
-import { cuboOrdinato, ruota, type Colore } from '../modello/cubo.ts'
+import { adesivi, cuboOrdinato, ruota, type Colore } from '../modello/cubo.ts'
 import { contaColori, daNotazione, inCaselle, orienta, type Passo } from './notazione.ts'
 import type { Richiesta, Risposta } from './risolutore.worker.ts'
 
@@ -74,4 +74,45 @@ export async function cercaPiuCorta(cubo: Colore[], attuale: Passo[], durata: nu
 // Ferma la ricerca in corso: cercaPiuCorta risponde con la migliore trovata fin lì
 export function interrompiRicerca(): void {
   interrompi?.()
+}
+
+// Pezzi del cubo: gli indici degli adesivi di ogni cubetto (1 centro, 2 spigolo, 3 angolo)
+const cubetti = new Map<string, number[]>()
+adesivi.forEach(({ posizione }, indice) => {
+  const chiave = posizione.join()
+  cubetti.set(chiave, [...(cubetti.get(chiave) ?? []), indice])
+})
+const pezzi = [...cubetti.values()]
+
+const chiavePezzo = (cubo: Colore[], pezzo: number[]) =>
+  pezzo
+    .map((indice) => cubo[indice])
+    .sort()
+    .join('')
+
+// Ricolora `partenza` in modo che `arrivo` diventi il cubo ordinato: ogni adesivo prende il colore che,
+// a cubo ordinato, sta nella casella dove quello stesso adesivo si trova in `arrivo`.
+// Le mosse che ordinano il cubo ricolorato portano quindi `partenza` in `arrivo`.
+export function ricolora(partenza: Colore[], arrivo: Colore[]): Colore[] {
+  const IRREALE = 'Il primo cubo non è un cubo reale: ogni pezzo deve comparire una volta sola, con colori diversi.'
+  if (Object.values(contaColori(arrivo)).some((quanti) => quanti !== 9))
+    throw new Error('Primo cubo: ogni colore deve comparire esattamente 9 volte.')
+  if (Object.values(contaColori(partenza)).some((quanti) => quanti !== 9))
+    throw new Error('Secondo cubo: ogni colore deve comparire esattamente 9 volte.')
+  const posti = new Map<string, number[]>()
+  for (const pezzo of pezzi) {
+    const chiave = chiavePezzo(arrivo, pezzo)
+    if (posti.has(chiave) || new Set(chiave).size !== chiave.length) throw new Error(IRREALE)
+    posti.set(chiave, pezzo)
+  }
+  const ricolorato = [...partenza]
+  for (const pezzo of pezzi) {
+    const posto = posti.get(chiavePezzo(partenza, pezzo))
+    if (!posto) throw new Error('I due cubi non hanno gli stessi pezzi: controlla i colori copiati.')
+    for (const indice of pezzo) {
+      const corrispondente = posto.find((i) => arrivo[i] === partenza[indice])!
+      ricolorato[indice] = cuboOrdinato[corrispondente]
+    }
+  }
+  return ricolorato
 }

@@ -13,6 +13,7 @@ interface BarraSoluzioneProps {
   bloccato: boolean
   onProssimo: () => void
   onPunta: (orbita: Orbita | null) => void
+  giaUguali?: string // messaggio quando non serve nessun passo
 }
 
 export function BarraSoluzione({
@@ -27,11 +28,12 @@ export function BarraSoluzione({
   bloccato,
   onProssimo,
   onPunta,
+  giaUguali = 'Il cubo è già ordinato.',
 }: BarraSoluzioneProps) {
   if (passi.length === 0)
     return (
       <div className="barra">
-        <p>Il cubo è già ordinato.</p>
+        <p>{giaUguali}</p>
       </div>
     )
   const finita = fatti === passi.length
