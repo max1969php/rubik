@@ -6,10 +6,11 @@ import { cuboOrdinato, mescola, ruota, type Colore, type Mossa, type Orbita } fr
 import { leggiConfronto, salvaConfronto } from '../persistenza/confronto.ts'
 import { CAMERA_PREDEFINITA, leggiScena } from '../persistenza/cookie.ts'
 import { contaColori, type Passo } from '../risolutore/notazione.ts'
-import { cercaPiuCorta, interrompiRicerca, ricolora, risolvi } from '../risolutore/risolvi.ts'
+import { cercaPiuCorta, interrompiRicerca, quarti, risolvi } from '../risolutore/risolvi.ts'
 import { Sviluppo } from '../studio/Sviluppo.tsx'
 
 const DURATA_RICERCA = 30_000 // ms
+const MINIMA = 'È la soluzione più corta possibile.'
 
 type Quale = 'primo' | 'secondo'
 
@@ -25,7 +26,12 @@ export function Confronto() {
   const [animazione, setAnimazione] = useState<Mossa | null>(null)
   const [coda, setCoda] = useState<Mossa[]>([])
   const [puntata, setPuntata] = useState<Orbita | null>(null)
-  const [soluzione, setSoluzione] = useState<{ passi: Passo[]; fatti: number; nota?: string } | null>(null)
+  const [soluzione, setSoluzione] = useState<{
+    passi: Passo[]
+    fatti: number
+    nota?: string
+    minima?: boolean
+  } | null>(null)
   const [inCalcolo, setInCalcolo] = useState(false)
   const [inRicerca, setInRicerca] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
@@ -63,7 +69,8 @@ export function Confronto() {
     setInPittura(null)
     setInCalcolo(true)
     try {
-      setSoluzione({ passi: await risolvi(ricolora(secondo, primo)), fatti: 0 })
+      const { passi, minima } = await risolvi(secondo, primo)
+      setSoluzione({ passi, fatti: 0, minima, nota: minima ? MINIMA : undefined })
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
@@ -73,16 +80,21 @@ export function Confronto() {
 
   async function cercaSoluzionePiuCorta() {
     if (!soluzione) return
-    const prima = soluzione.passi.length
+    const prima = quarti(soluzione.passi)
     setErrore(null)
     setInRicerca(true)
     try {
-      const passi = await cercaPiuCorta(ricolora(secondo, primo), soluzione.passi, DURATA_RICERCA)
-      const nota =
-        passi.length < prima
-          ? `Trovata una soluzione più corta: da ${prima} a ${passi.length} passi.`
-          : 'Nessuna soluzione più corta trovata.'
-      setSoluzione({ passi, fatti: 0, nota })
+      const { passi, minima } = await cercaPiuCorta(secondo, primo, soluzione.passi, DURATA_RICERCA)
+      const dopo = quarti(passi)
+      const nota = [
+        dopo < prima
+          ? `Trovata una soluzione più corta: da ${prima} a ${dopo} quarti di giro.`
+          : 'Nessuna soluzione più corta trovata.',
+        minima ? MINIMA : undefined,
+      ]
+        .filter(Boolean)
+        .join(' ')
+      setSoluzione({ passi, fatti: 0, minima, nota })
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
@@ -185,7 +197,7 @@ export function Confronto() {
           nota={soluzione.nota}
           inRicerca={inRicerca}
           secondiRicerca={DURATA_RICERCA / 1000}
-          onPiuCorta={soluzione.fatti === 0 ? cercaSoluzionePiuCorta : undefined}
+          onPiuCorta={!soluzione.minima && soluzione.fatti === 0 ? cercaSoluzionePiuCorta : undefined}
           onInterrompi={interrompiRicerca}
           passi={soluzione.passi}
           fatti={soluzione.fatti}

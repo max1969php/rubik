@@ -1,6 +1,11 @@
-import { adesivi, cuboOrdinato, ruota, type Colore } from '../modello/cubo.ts'
+import { adesivi, cuboOrdinato, orbite, ruota, type Colore, type Mossa } from '../modello/cubo.ts'
+import { testoMossa } from '../modello/sequenza.ts'
 import { contaColori, daNotazione, inCaselle, orienta, type Passo } from './notazione.ts'
+import type { RichiestaEsatta, RispostaEsatta } from './orbite.worker.ts'
 import type { Richiesta, Risposta } from './risolutore.worker.ts'
+
+// Oltre questi quarti di giro la ricerca esatta sulle orbite diventa troppo lenta
+const MASSIMO_ESATTA = 9
 
 let worker: Worker | null = null
 let interrompi: (() => void) | null = null
@@ -47,28 +52,82 @@ function preparaCubo(cubo: Colore[]): { giri: Passo[]; orientato: Colore[] } {
 
 const ordinato = (cubo: Colore[]) => cubo.every((colore, i) => colore === cuboOrdinato[i])
 
-// Passi che riportano il cubo allo stato ordinato
-export async function risolvi(cubo: Colore[]): Promise<Passo[]> {
-  const { giri, orientato } = preparaCubo(cubo)
-  if (ordinato(orientato)) return giri
-  return [...giri, ...daNotazione((await chiediAlWorker({ caselle: inCaselle(orientato) }))!)]
+let workerEsatta: Worker | null = null
+
+// Mosse più corte sulle 9 orbite da `partenza` ad `arrivo`, null se ne servono più di `massimo`
+function chiediEsatta(richiesta: RichiestaEsatta): Promise<Mossa[] | null> {
+  workerEsatta ??= new Worker(new URL('./orbite.worker.ts', import.meta.url), { type: 'module' })
+  const attivo = workerEsatta
+  return new Promise((risolvi, rifiuta) => {
+    attivo.onmessage = ({ data }: MessageEvent<RispostaEsatta>) =>
+      risolvi(data && data.map(({ orbita, direzione }) => ({ orbita: orbite.find((o) => o.id === orbita)!, direzione })))
+    attivo.onerror = () => rifiuta(new Error('La ricerca sulle orbite non è riuscita a partire.'))
+    attivo.postMessage(richiesta)
+  })
 }
 
-// Chiede soluzioni con sempre meno mosse di faccia finché ne trova o finché non scade il tempo.
-// Il risolutore non garantisce la più corta in assoluto, ma con più tempo ci va molto vicino.
-export async function cercaPiuCorta(cubo: Colore[], attuale: Passo[], durata: number): Promise<Passo[]> {
-  const { giri, orientato } = preparaCubo(cubo)
-  const caselle = inCaselle(orientato)
+// Due quarti di giro uguali di fila diventano un solo passo ×2
+function inPassiDoppi(mosse: Mossa[]): Passo[] {
+  const passi: Passo[] = []
+  for (const mossa of mosse) {
+    const ultimo = passi.at(-1)
+    const [prima] = ultimo?.mosse ?? []
+    if (ultimo?.mosse.length === 1 && prima.orbita === mossa.orbita && prima.direzione === mossa.direzione) {
+      ultimo.mosse.push(mossa)
+      ultimo.testo += ' ×2'
+    } else passi.push({ testo: testoMossa(mossa), mosse: [mossa] })
+  }
+  return passi
+}
+
+export const quarti = (passi: Passo[]) => passi.reduce((totale, passo) => totale + passo.mosse.length, 0)
+
+// Il cubo da dare a cubejs: quello che va ordinato perché `partenza` arrivi in `arrivo`
+const daOrdinare = (partenza: Colore[], arrivo: Colore[]) =>
+  ordinato(arrivo) ? partenza : ricolora(partenza, arrivo)
+
+// minima: nessuna soluzione ha meno quarti di giro sulle orbite
+export interface Soluzione {
+  passi: Passo[]
+  minima: boolean
+}
+
+// Passi che portano `partenza` in `arrivo` (di solito il cubo ordinato). Se bastano pochi quarti di giro
+// la ricerca esatta sulle orbite trova la più corta; altrimenti si usa cubejs, che gira solo le facce esterne.
+export async function risolvi(partenza: Colore[], arrivo: Colore[] = cuboOrdinato): Promise<Soluzione> {
+  const { giri, orientato } = preparaCubo(daOrdinare(partenza, arrivo))
+  const esatta = await chiediEsatta({ partenza, arrivo, massimo: MASSIMO_ESATTA })
+  if (esatta) return { passi: inPassiDoppi(esatta), minima: true }
+  if (ordinato(orientato)) return { passi: giri, minima: false }
+  return { passi: [...giri, ...daNotazione((await chiediAlWorker({ caselle: inCaselle(orientato) }))!)], minima: false }
+}
+
+// Prima la ricerca esatta sotto i quarti di giro attuali; se non basta, chiede a cubejs soluzioni con sempre
+// meno mosse di faccia finché ne trova o finché non scade il tempo, e tiene quella con meno quarti di giro.
+export async function cercaPiuCorta(
+  partenza: Colore[],
+  arrivo: Colore[],
+  attuale: Passo[],
+  durata: number,
+): Promise<Soluzione> {
   const fine = Date.now() + durata
+  const { giri, orientato } = preparaCubo(daOrdinare(partenza, arrivo))
+  const massimo = Math.min(MASSIMO_ESATTA, quarti(attuale) - 1)
+  const esatta = await chiediEsatta({ partenza, arrivo, massimo })
+  if (esatta) return { passi: inPassiDoppi(esatta), minima: true }
+  if (massimo < MASSIMO_ESATTA) return { passi: attuale, minima: true }
+  const caselle = inCaselle(orientato)
   let migliore = attuale
-  while (migliore.length - giri.length > 1) {
+  let candidata = attuale
+  while (candidata.length - giri.length > 1) {
     const resto = fine - Date.now()
     if (resto <= 0) break
-    const mosse = await chiediAlWorker({ caselle, massimo: migliore.length - giri.length - 1 }, resto)
+    const mosse = await chiediAlWorker({ caselle, massimo: candidata.length - giri.length - 1 }, resto)
     if (mosse === null) break
-    migliore = [...giri, ...daNotazione(mosse)]
+    candidata = [...giri, ...daNotazione(mosse)]
+    if (quarti(candidata) < quarti(migliore)) migliore = candidata
   }
-  return migliore
+  return { passi: migliore, minima: false }
 }
 
 // Ferma la ricerca in corso: cercaPiuCorta risponde con la migliore trovata fin lì
@@ -93,7 +152,7 @@ const chiavePezzo = (cubo: Colore[], pezzo: number[]) =>
 // Ricolora `partenza` in modo che `arrivo` diventi il cubo ordinato: ogni adesivo prende il colore che,
 // a cubo ordinato, sta nella casella dove quello stesso adesivo si trova in `arrivo`.
 // Le mosse che ordinano il cubo ricolorato portano quindi `partenza` in `arrivo`.
-export function ricolora(partenza: Colore[], arrivo: Colore[]): Colore[] {
+function ricolora(partenza: Colore[], arrivo: Colore[]): Colore[] {
   const IRREALE = 'Il primo cubo non è un cubo reale: ogni pezzo deve comparire una volta sola, con colori diversi.'
   if (Object.values(contaColori(arrivo)).some((quanti) => quanti !== 9))
     throw new Error('Primo cubo: ogni colore deve comparire esattamente 9 volte.')

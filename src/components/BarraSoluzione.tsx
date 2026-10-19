@@ -1,5 +1,6 @@
 import type { Orbita } from '../modello/cubo.ts'
 import type { Passo } from '../risolutore/notazione.ts'
+import { quarti as contaQuarti } from '../risolutore/risolvi.ts'
 
 interface BarraSoluzioneProps {
   titolo?: string // nome della sequenza in esecuzione, assente per la soluzione calcolata
@@ -38,7 +39,7 @@ export function BarraSoluzione({
     )
   const finita = fatti === passi.length
   // Ogni passo è uno o più quarti di giro di un'orbita: si confrontano con le mosse registrate
-  const quarti = passi.reduce((totale, passo) => totale + passo.mosse.length, 0)
+  const quarti = contaQuarti(passi)
   return (
     <div className="barra">
       <div className="soluzione-testa">

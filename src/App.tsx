@@ -20,9 +20,10 @@ import { creaSequenza, inPassi, rollback, type Sequenza } from './modello/sequen
 import { leggiScena, salvaScena } from './persistenza/cookie.ts'
 import { decodifica, leggiSequenze, salvaSequenze, scaricaSequenze, unisci } from './persistenza/sequenze.ts'
 import { contaColori, type Passo } from './risolutore/notazione.ts'
-import { cercaPiuCorta, interrompiRicerca, risolvi } from './risolutore/risolvi.ts'
+import { cercaPiuCorta, interrompiRicerca, quarti, risolvi } from './risolutore/risolvi.ts'
 
 const DURATA_RICERCA = 30_000 // ms
+const MINIMA = 'È la soluzione più corta possibile.'
 
 function App() {
   const [scenaIniziale] = useState(leggiScena)
@@ -32,7 +33,13 @@ function App() {
   const [puntata, setPuntata] = useState<Orbita | null>(null)
   const [inCopia, setInCopia] = useState(false)
   const [pennello, setPennello] = useState<Colore>(cuboOrdinato[0])
-  const [soluzione, setSoluzione] = useState<{ passi: Passo[]; fatti: number; titolo?: string; nota?: string } | null>(
+  const [soluzione, setSoluzione] = useState<{
+    passi: Passo[]
+    fatti: number
+    titolo?: string
+    nota?: string
+    minima?: boolean
+  } | null>(
     null,
   )
   const [sequenze, setSequenze] = useState(leggiSequenze)
@@ -104,7 +111,8 @@ function App() {
     scartaSoluzione()
     setInCalcolo(true)
     try {
-      setSoluzione({ passi: await risolvi(cubo), fatti: 0 })
+      const { passi, minima } = await risolvi(cubo)
+      setSoluzione({ passi, fatti: 0, minima, nota: minima ? MINIMA : undefined })
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
@@ -114,16 +122,21 @@ function App() {
 
   async function cercaSoluzionePiuCorta() {
     if (!soluzione) return
-    const prima = soluzione.passi.length
+    const prima = quarti(soluzione.passi)
     setErrore(null)
     setInRicerca(true)
     try {
-      const passi = await cercaPiuCorta(cubo, soluzione.passi, DURATA_RICERCA)
-      const nota =
-        passi.length < prima
-          ? `Trovata una soluzione più corta: da ${prima} a ${passi.length} passi.`
-          : 'Nessuna soluzione più corta trovata.'
-      setSoluzione({ passi, fatti: 0, nota })
+      const { passi, minima } = await cercaPiuCorta(cubo, cuboOrdinato, soluzione.passi, DURATA_RICERCA)
+      const dopo = quarti(passi)
+      const nota = [
+        dopo < prima
+          ? `Trovata una soluzione più corta: da ${prima} a ${dopo} quarti di giro.`
+          : 'Nessuna soluzione più corta trovata.',
+        minima ? MINIMA : undefined,
+      ]
+        .filter(Boolean)
+        .join(' ')
+      setSoluzione({ passi, fatti: 0, minima, nota })
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
@@ -264,7 +277,11 @@ function App() {
           nota={soluzione.nota}
           inRicerca={inRicerca}
           secondiRicerca={DURATA_RICERCA / 1000}
-          onPiuCorta={soluzione.titolo === undefined && soluzione.fatti === 0 ? cercaSoluzionePiuCorta : undefined}
+          onPiuCorta={
+            soluzione.titolo === undefined && !soluzione.minima && soluzione.fatti === 0
+              ? cercaSoluzionePiuCorta
+              : undefined
+          }
           onInterrompi={interrompiRicerca}
           passi={soluzione.passi}
           fatti={soluzione.fatti}
