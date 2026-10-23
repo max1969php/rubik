@@ -8,6 +8,7 @@ import { CAMERA_PREDEFINITA, leggiScena } from '../persistenza/cookie.ts'
 import { contaColori, type Passo } from '../risolutore/notazione.ts'
 import { cercaPiuCorta, interrompiRicerca, quarti, risolvi } from '../risolutore/risolvi.ts'
 import { Sviluppo } from '../studio/Sviluppo.tsx'
+import { scaricaPdfSequenza } from './pdfSequenza.ts'
 
 const DURATA_RICERCA = 30_000 // ms
 const MINIMA = 'È la soluzione più corta possibile.'
@@ -28,6 +29,7 @@ export function Confronto() {
   const [puntata, setPuntata] = useState<Orbita | null>(null)
   const [soluzione, setSoluzione] = useState<{
     passi: Passo[]
+    partenza: Colore[] // il secondo cubo prima di eseguire i passi
     fatti: number
     nota?: string
     minima?: boolean
@@ -35,6 +37,7 @@ export function Confronto() {
   const [inCalcolo, setInCalcolo] = useState(false)
   const [inRicerca, setInRicerca] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
+  const [inPdf, setInPdf] = useState(false)
 
   const bloccato = animazione !== null || inCalcolo || inRicerca
   const cubi = { primo, secondo }
@@ -70,7 +73,7 @@ export function Confronto() {
     setInCalcolo(true)
     try {
       const { passi, minima } = await risolvi(secondo, primo)
-      setSoluzione({ passi, fatti: 0, minima, nota: minima ? MINIMA : undefined })
+      setSoluzione({ passi, partenza: secondo, fatti: 0, minima, nota: minima ? MINIMA : undefined })
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
@@ -94,11 +97,23 @@ export function Confronto() {
       ]
         .filter(Boolean)
         .join(' ')
-      setSoluzione({ passi, fatti: 0, minima, nota })
+      setSoluzione({ passi, partenza: secondo, fatti: 0, minima, nota })
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
       setInRicerca(false)
+    }
+  }
+
+  async function renderSequenza() {
+    if (!soluzione) return
+    setInPdf(true)
+    try {
+      await scaricaPdfSequenza(soluzione.partenza, soluzione.passi)
+    } catch (problema) {
+      setErrore(problema instanceof Error ? problema.message : String(problema))
+    } finally {
+      setInPdf(false)
     }
   }
 
@@ -174,6 +189,13 @@ export function Confronto() {
           </button>
           <button type="button" disabled={bloccato || inPittura !== null} onClick={calcolaSoluzione}>
             Dal secondo al primo
+          </button>
+          <button
+            type="button"
+            disabled={!soluzione || soluzione.passi.length === 0 || inRicerca || inPdf}
+            onClick={renderSequenza}
+          >
+            Render sequenza
           </button>
           <a className="pulsante" href="#">
             Torna al cubo
