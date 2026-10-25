@@ -6,6 +6,7 @@ interface BarraSequenzeProps {
   bloccato: boolean
   onEsegui: (sequenza: Sequenza) => void
   onRollback: (sequenza: Sequenza) => void
+  onRender: (sequenza: Sequenza) => void
   onRinomina: (id: string, nome: string) => void
   onElimina: (sequenza: Sequenza) => void
   onScarica: () => void
@@ -18,6 +19,7 @@ export function BarraSequenze({
   bloccato,
   onEsegui,
   onRollback,
+  onRender,
   onRinomina,
   onElimina,
   onScarica,
@@ -70,6 +72,9 @@ export function BarraSequenze({
               </button>
               <button type="button" disabled={bloccato} onClick={() => onRollback(sequenza)}>
                 Rollback
+              </button>
+              <button type="button" disabled={bloccato} onClick={() => onRender(sequenza)}>
+                Render sequenza
               </button>
               <button type="button" disabled={bloccato} onClick={() => onElimina(sequenza)}>
                 Elimina

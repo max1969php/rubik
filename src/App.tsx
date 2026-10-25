@@ -7,6 +7,7 @@ import { BarraSoluzione } from './components/BarraSoluzione.tsx'
 import { Cubo3D } from './components/Cubo3D.tsx'
 import { Orbite2D } from './components/Orbite2D.tsx'
 import { OrbiteIntrecciate } from './components/OrbiteIntrecciate.tsx'
+import { scaricaPdfSequenza } from './confronto/pdfSequenza.ts'
 import {
   cuboOrdinato,
   mescola,
@@ -51,6 +52,7 @@ function App() {
   const [inCalcolo, setInCalcolo] = useState(false)
   const [inRicerca, setInRicerca] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
+  const [inPdf, setInPdf] = useState(false)
   const camera = useRef(scenaIniziale.camera)
 
   // Orbita messa in risalto nelle tre viste: quella in movimento o quella sotto il mouse
@@ -172,6 +174,18 @@ function App() {
     setSoluzione({ passi: inPassi(mosse), fatti: 0, titolo })
   }
 
+  async function renderSequenza(sequenza: Sequenza) {
+    setErrore(null)
+    setInPdf(true)
+    try {
+      await scaricaPdfSequenza(sequenza.iniziale, inPassi(sequenza.mosse))
+    } catch (problema) {
+      setErrore(problema instanceof Error ? problema.message : String(problema))
+    } finally {
+      setInPdf(false)
+    }
+  }
+
   function rinominaSequenza(id: string, nome: string) {
     setSequenze(sequenze.map((sequenza) => (sequenza.id === id ? { ...sequenza, nome } : sequenza)))
   }
@@ -262,9 +276,10 @@ function App() {
       {elencoAperto && (
         <BarraSequenze
           sequenze={sequenze}
-          bloccato={occupato || inCopia}
+          bloccato={occupato || inCopia || inPdf}
           onEsegui={({ nome, iniziale, mosse }) => eseguiSequenza(nome, iniziale, mosse)}
           onRollback={({ nome, finale, mosse }) => eseguiSequenza(`Rollback di ${nome}`, finale, rollback(mosse))}
+          onRender={renderSequenza}
           onRinomina={rinominaSequenza}
           onElimina={eliminaSequenza}
           onScarica={() => scaricaSequenze(sequenze)}
