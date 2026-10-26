@@ -1,4 +1,4 @@
-import { adesivi, cuboOrdinato, orbite, ruota, type Colore, type Mossa } from '../modello/cubo.ts'
+import { cuboOrdinato, orbite, pezzi, ruota, type Colore, type Mossa } from '../modello/cubo.ts'
 import { testoMossa } from '../modello/sequenza.ts'
 import { contaColori, daNotazione, inCaselle, orienta, type Passo } from './notazione.ts'
 import type { RichiestaEsatta, RispostaEsatta } from './orbite.worker.ts'
@@ -134,14 +134,6 @@ export async function cercaPiuCorta(
 export function interrompiRicerca(): void {
   interrompi?.()
 }
-
-// Pezzi del cubo: gli indici degli adesivi di ogni cubetto (1 centro, 2 spigolo, 3 angolo)
-const cubetti = new Map<string, number[]>()
-adesivi.forEach(({ posizione }, indice) => {
-  const chiave = posizione.join()
-  cubetti.set(chiave, [...(cubetti.get(chiave) ?? []), indice])
-})
-const pezzi = [...cubetti.values()]
 
 const chiavePezzo = (cubo: Colore[], pezzo: number[]) =>
   pezzo

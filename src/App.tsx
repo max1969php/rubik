@@ -11,6 +11,7 @@ import { scaricaPdfSequenza } from './confronto/pdfSequenza.ts'
 import {
   cuboOrdinato,
   mescola,
+  pezziCambiati,
   ruota,
   type Colore,
   type Mossa,
@@ -25,6 +26,24 @@ import { cercaPiuCorta, interrompiRicerca, quarti, risolvi } from './risolutore/
 
 const DURATA_RICERCA = 30_000 // ms
 const MINIMA = 'È la soluzione più corta possibile.'
+
+// "3 angoli e 1 spigolo": i pezzi cambiati, contati per tipo (2 adesivi spigolo, 3 angolo, 1 centro)
+function descriviCambiati(cambiati: number[][]): string {
+  if (cambiati.length === 0) return "Nessun pezzo è cambiato dall'inizio della sequenza."
+  const nomi = [
+    ['angolo', 'angoli', 3],
+    ['spigolo', 'spigoli', 2],
+    ['centro', 'centri', 1],
+  ] as const
+  const parti = nomi.flatMap(([uno, molti, adesivi]) => {
+    const quanti = cambiati.filter((pezzo) => pezzo.length === adesivi).length
+    return quanti === 0 ? [] : [`${quanti} ${quanti === 1 ? uno : molti}`]
+  })
+  const elenco = parti.length > 1 ? `${parti.slice(0, -1).join(', ')} e ${parti.at(-1)}` : parti[0]
+  return cambiati.length === 1
+    ? `Dall'inizio della sequenza è cambiato ${elenco}: è l'unico pezzo illuminato sul cubo 3D.`
+    : `Dall'inizio della sequenza sono cambiati ${elenco}: sono i soli pezzi illuminati sul cubo 3D.`
+}
 
 function App() {
   const [scenaIniziale] = useState(leggiScena)
@@ -54,12 +73,16 @@ function App() {
   const [errore, setErrore] = useState<string | null>(null)
   const [inPdf, setInPdf] = useState(false)
   const camera = useRef(scenaIniziale.camera)
+  // Il cubo com'era all'inizio dell'ultima registrazione o sequenza eseguita, per vedere cosa è cambiato
+  const [riferimento, setRiferimento] = useState<Colore[] | null>(null)
+  const [mostraCambiati, setMostraCambiati] = useState(false)
 
   // Orbita messa in risalto nelle tre viste: quella in movimento o quella sotto il mouse
   const evidenziata = inCopia ? null : (animazione?.orbita ?? puntata)
   const bloccato = animazione !== null || inCalcolo || inRicerca
   // Mentre si registra il cubo cambia solo con le mosse sulle orbite
   const occupato = bloccato || registrazione !== null
+  const cambiati = riferimento && mostraCambiati ? pezziCambiati(riferimento, cubo) : null
 
   useEffect(() => {
     salvaScena({ cubo, camera: camera.current })
@@ -80,8 +103,10 @@ function App() {
     setErrore(null)
   }
 
+  // Un cubo cambiato a mano non si confronta più con l'inizio della sequenza
   function cambiaCubo(nuovo: Colore[]) {
     scartaSoluzione()
+    setRiferimento(null)
     setCubo(nuovo)
   }
 
@@ -157,6 +182,7 @@ function App() {
   function avviaRegistrazione() {
     scartaSoluzione()
     setRegistrazione({ iniziale: cubo, mosse: [], nome: '' })
+    setRiferimento(cubo)
   }
 
   function salvaRegistrazione() {
@@ -171,6 +197,7 @@ function App() {
   function eseguiSequenza(titolo: string, partenza: Colore[], mosse: Mossa[]) {
     setErrore(null)
     setCubo(partenza)
+    setRiferimento(partenza)
     setSoluzione({ passi: inPassi(mosse), fatti: 0, titolo })
   }
 
@@ -249,12 +276,26 @@ function App() {
           <button type="button" aria-pressed={elencoAperto} onClick={() => setElencoAperto(!elencoAperto)}>
             Sequenze ({sequenze.length})
           </button>
+          <button
+            type="button"
+            disabled={!riferimento}
+            aria-pressed={cambiati !== null}
+            title="Illumina solo i pezzi diversi da com'erano all'inizio della registrazione o della sequenza"
+            onClick={() => setMostraCambiati(!mostraCambiati)}
+          >
+            Pezzi cambiati
+          </button>
         </div>
       </header>
       {inCopia && <BarraCopia pennello={pennello} conteggi={contaColori(cubo)} onPennello={setPennello} />}
       {inCalcolo && (
         <div className="barra" role="status">
           <p>Calcolo della soluzione… (la prima volta richiede qualche secondo)</p>
+        </div>
+      )}
+      {cambiati && (
+        <div className="barra" role="status">
+          <p>{descriviCambiati(cambiati)}</p>
         </div>
       )}
       {errore && (
@@ -326,6 +367,7 @@ function App() {
             cubo={cubo}
             animazione={animazione}
             evidenziata={evidenziata}
+            accesi={cambiati ? new Set(cambiati.flat()) : undefined}
             onFineMossa={concludiMossa}
             cameraIniziale={scenaIniziale.camera}
             onCamera={salvaCamera}

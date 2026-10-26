@@ -43,6 +43,19 @@ for (const x of COORDINATE)
         if (posizione[asse] !== 0) adesivi.push({ posizione, asse })
       }
 
+// Pezzi del cubo: gli indici degli adesivi di ogni cubetto (1 centro, 2 spigolo, 3 angolo)
+const cubetti = new Map<string, number[]>()
+adesivi.forEach(({ posizione }, indice) => {
+  const chiave = posizione.join()
+  cubetti.set(chiave, [...(cubetti.get(chiave) ?? []), indice])
+})
+export const pezzi: number[][] = [...cubetti.values()]
+
+// I pezzi che hanno almeno un adesivo di colore diverso fra i due cubi
+export function pezziCambiati(prima: Colore[], dopo: Colore[]): number[][] {
+  return pezzi.filter((pezzo) => pezzo.some((indice) => prima[indice] !== dopo[indice]))
+}
+
 const chiave = (posizione: Vettore, asse: Asse) => `${posizione}|${asse}`
 const indici = new Map(adesivi.map((a, i) => [chiave(a.posizione, a.asse), i]))
 
