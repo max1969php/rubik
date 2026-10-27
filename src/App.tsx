@@ -7,6 +7,7 @@ import { BarraSoluzione } from './components/BarraSoluzione.tsx'
 import { Cubo3D } from './components/Cubo3D.tsx'
 import { Orbite2D } from './components/Orbite2D.tsx'
 import { OrbiteIntrecciate } from './components/OrbiteIntrecciate.tsx'
+import { scaricaPdfMovimenti } from './confronto/pdfMovimenti.ts'
 import { scaricaPdfSequenza } from './confronto/pdfSequenza.ts'
 import {
   cuboOrdinato,
@@ -19,7 +20,7 @@ import {
   type Vettore,
 } from './modello/cubo.ts'
 import { creaSequenza, inPassi, rollback, type Sequenza } from './modello/sequenza.ts'
-import { leggiScena, salvaScena } from './persistenza/cookie.ts'
+import { CAMERA_PREDEFINITA, leggiScena, salvaScena } from './persistenza/cookie.ts'
 import { decodifica, leggiSequenze, salvaSequenze, scaricaSequenze, unisci } from './persistenza/sequenze.ts'
 import { contaColori, type Passo } from './risolutore/notazione.ts'
 import { cercaPiuCorta, interrompiRicerca, quarti, risolvi } from './risolutore/risolvi.ts'
@@ -44,6 +45,10 @@ function descriviCambiati(cambiati: number[][]): string {
     ? `Dall'inizio della sequenza è cambiato ${elenco}: è l'unico pezzo illuminato sul cubo 3D.`
     : `Dall'inizio della sequenza sono cambiati ${elenco}: sono i soli pezzi illuminati sul cubo 3D.`
 }
+
+// Seconda vista: dal vertice opposto a quello della vista predefinita, per vedere le tre facce nascoste
+const CAMERA_OPPOSTA = CAMERA_PREDEFINITA.map((n) => -n) as Vettore
+const nessunaAzione = () => {}
 
 function App() {
   const [scenaIniziale] = useState(leggiScena)
@@ -201,11 +206,11 @@ function App() {
     setSoluzione({ passi: inPassi(mosse), fatti: 0, titolo })
   }
 
-  async function renderSequenza(sequenza: Sequenza) {
+  async function creaPdf(scarica: () => Promise<void>) {
     setErrore(null)
     setInPdf(true)
     try {
-      await scaricaPdfSequenza(sequenza.iniziale, inPassi(sequenza.mosse))
+      await scarica()
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
@@ -239,6 +244,14 @@ function App() {
     evidenziata,
     onMossa: mossaManuale,
     onPunta: setPuntata,
+    onDipingi,
+  }
+
+  const cubo3D = {
+    cubo,
+    animazione,
+    evidenziata,
+    accesi: cambiati ? new Set(cambiati.flat()) : undefined,
     onDipingi,
   }
 
@@ -320,7 +333,12 @@ function App() {
           bloccato={occupato || inCopia || inPdf}
           onEsegui={({ nome, iniziale, mosse }) => eseguiSequenza(nome, iniziale, mosse)}
           onRollback={({ nome, finale, mosse }) => eseguiSequenza(`Rollback di ${nome}`, finale, rollback(mosse))}
-          onRender={renderSequenza}
+          onRender={(sequenza) =>
+            creaPdf(() => scaricaPdfSequenza(sequenza.iniziale, inPassi(sequenza.mosse), sequenza.nome))
+          }
+          onRenderMovimenti={(sequenza) =>
+            creaPdf(() => scaricaPdfMovimenti(sequenza.iniziale, sequenza.mosse, sequenza.nome))
+          }
           onRinomina={rinominaSequenza}
           onElimina={eliminaSequenza}
           onScarica={() => scaricaSequenze(sequenze)}
@@ -363,16 +381,14 @@ function App() {
           <Orbite2D famiglia="z" {...anelli} />
         </section>
         <section className="vista-3d">
-          <Cubo3D
-            cubo={cubo}
-            animazione={animazione}
-            evidenziata={evidenziata}
-            accesi={cambiati ? new Set(cambiati.flat()) : undefined}
-            onFineMossa={concludiMossa}
-            cameraIniziale={scenaIniziale.camera}
-            onCamera={salvaCamera}
-            onDipingi={onDipingi}
-          />
+          <div className="vista-3d-cubo">
+            <Cubo3D {...cubo3D} onFineMossa={concludiMossa} cameraIniziale={scenaIniziale.camera} onCamera={salvaCamera} />
+          </div>
+          {/* Si anima insieme alla vista principale, ma è quella a far proseguire le mosse */}
+          <div className="vista-3d-cubo vista-3d-opposta">
+            <span className="nota">Dal vertice opposto</span>
+            <Cubo3D {...cubo3D} onFineMossa={nessunaAzione} cameraIniziale={CAMERA_OPPOSTA} onCamera={nessunaAzione} />
+          </div>
         </section>
       </main>
     </>

@@ -61,19 +61,37 @@ main {
 
 .vista-3d {
   min-width: 0;
-  height: 520px;
+  display: grid;
+  grid-template-rows: 520px 320px;
   border-top: 1px solid var(--border);
-  cursor: grab;
 
+  /* Schermi larghi: la vista principale prende più spazio di quella dal vertice opposto */
   @media (min-width: 1200px) {
-    height: auto;
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
     min-height: 0;
     border-top: none;
     border-left: 1px solid var(--border);
   }
+}
+
+.vista-3d-cubo {
+  min-height: 0;
+  cursor: grab;
 
   &:active {
     cursor: grabbing;
+  }
+}
+
+.vista-3d-opposta {
+  position: relative;
+  border-top: 1px solid var(--border);
+
+  .nota {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    pointer-events: none;
   }
 }
 
