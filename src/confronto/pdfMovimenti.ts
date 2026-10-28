@@ -14,18 +14,27 @@ const coloreFreccia = (i: number) => COLORI_FRECCE[i % COLORI_FRECCE.length]
 type Punto = [number, number]
 
 // Un pezzo che la sequenza sposta o ruota: da quale posto a quale (indici degli adesivi del cubetto)
+// e, per ogni adesivo di `a`, l'adesivo da cui viene
 interface Movimento {
   da: number[]
   a: number[]
+  provenienza: number[]
 }
 
+const identita = adesivi.map((_, i) => i)
+
 // Si fanno girare gli indici degli adesivi al posto dei colori, così si sa da dove viene ogni adesivo
+const segui = (mosse: Mossa[]) => mosse.reduce(ruota, identita as unknown as Colore[]) as unknown as number[]
+
 function movimenti(mosse: Mossa[]): Movimento[] {
-  const indici = adesivi.map((_, i) => i) as unknown as Colore[]
-  const finale = mosse.reduce(ruota, indici) as unknown as number[]
+  const finale = segui(mosse)
   return pezzi
     .filter((posto) => posto.some((indice) => finale[indice] !== indice))
-    .map((posto) => ({ da: pezzi.find((pezzo) => pezzo.includes(finale[posto[0]]))!, a: posto }))
+    .map((posto) => ({
+      da: pezzi.find((pezzo) => pezzo.includes(finale[posto[0]]))!,
+      a: posto,
+      provenienza: posto.map((indice) => finale[indice]),
+    }))
 }
 
 const posizione = (pezzo: number[]) => adesivi[pezzo[0]].posizione
@@ -172,12 +181,26 @@ function percorso(da: Vettore, a: Vettore): string | null {
   return null
 }
 
-function descrivi({ da, a }: Movimento): string {
+// L'adesivo di riferimento di un pezzo, come nella notazione standard: quello sopra o sotto (asse y) e,
+// per gli spigoli di mezzo che non ne hanno, quello davanti o dietro (asse z)
+const riferimento = (pezzo: number[]) =>
+  pezzo.find((indice) => adesivi[indice].asse === 1) ?? pezzo.find((indice) => adesivi[indice].asse === 2)!
+
+// Capovolto (o ruotato, per un angolo) se l'adesivo di riferimento del pezzo non arriva sulla casella di
+// riferimento del nuovo posto
+function girato({ da, a, provenienza }: Movimento): boolean {
+  return provenienza[a.indexOf(riferimento(a))] !== riferimento(da)
+}
+
+function descrivi(movimento: Movimento): string {
+  const { da, a } = movimento
   const [partenza, arrivo] = [posizione(da), posizione(a)]
   const pezzo = `${TIPI[da.length]} ${nomePosto(partenza) || 'interno'}`
-  if (uguale(partenza, arrivo)) return `${pezzo} resta al suo posto ma ruotato su se stesso`
+  if (uguale(partenza, arrivo))
+    return `${pezzo} resta al suo posto ma ${da.length === 2 ? 'capovolto' : 'ruotato su se stesso'}`
   const come = percorso(partenza, arrivo)
-  return `${pezzo} va in ${nomePosto(arrivo)}${come ? `   (come con ${come})` : ''}`
+  const nota = girato(movimento) ? (da.length === 2 ? ', arriva capovolto' : ', arriva ruotato') : ''
+  return `${pezzo} va in ${nomePosto(arrivo)}${nota}${come ? `   (come con ${come})` : ''}`
 }
 
 // Da una pagina nuova: la partenza e l'arrivo della sequenza dai due vertici e, su un cubo trasparente,
@@ -250,8 +273,9 @@ export function disegnaMovimenti(pdf: jsPDF, partenza: Colore[], mosse: Mossa[],
   pdf.setFontSize(8.5)
   pdf.setTextColor('#666666')
   pdf.text(
-    'Il giro fra parentesi dice solo dove arriva il pezzo, non la sua rotazione: la sequenza intera lo porta lì ' +
-      'lasciando a posto tutto il resto.',
+    'Il giro fra parentesi dice solo dove arriva il pezzo: la sequenza intera lo porta lì lasciando a posto tutto ' +
+      'il resto. «Arriva capovolto» (o «ruotato» per un angolo): il suo colore che stava sopra o sotto (davanti o ' +
+      'dietro per gli spigoli di mezzo) non arriva sopra o sotto (davanti o dietro) nel nuovo posto.',
     MARGINE,
     Math.min(y + 2, ALTEZZA - MARGINE),
     { maxWidth: larghezza },
