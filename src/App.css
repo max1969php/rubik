@@ -450,75 +450,7 @@ input[type='text'] {
   }
 }
 
-/* Pagina Studio: elenco delle categorie a sinistra, esempio in 3D a destra */
-.studio {
-  @media (min-width: 1000px) {
-    display: grid;
-    grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr);
-  }
-}
-
-.categorie {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 16px 24px;
-  list-style: none;
-
-  @media (min-width: 1000px) {
-    max-height: calc(100svh - 190px);
-    overflow-y: auto;
-    border-right: 1px solid var(--border);
-  }
-
-  button {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 10px;
-    text-align: left;
-    color: var(--text-h);
-    background: none;
-    border-color: var(--border);
-
-    &[aria-pressed='true'] {
-      border-color: var(--accent);
-      background: var(--accent-bg);
-    }
-  }
-
-  .sviluppo {
-    flex: none;
-    width: 84px;
-  }
-}
-
-.categoria-testo {
-  display: flex;
-  flex-direction: column;
-
-  strong {
-    font-weight: 600;
-  }
-}
-
-.studio-dettaglio {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 24px;
-  text-align: left;
-
-  > .sviluppo {
-    align-self: center;
-    width: min(100%, 320px);
-  }
-}
-
-.studio-testa {
+.confronto-testa {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -531,7 +463,7 @@ input[type='text'] {
   }
 }
 
-.studio-cubo {
+.confronto-vista {
   height: 420px;
   cursor: grab;
 

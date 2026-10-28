@@ -180,11 +180,9 @@ function descrivi({ da, a }: Movimento): string {
   return `${pezzo} va in ${nomePosto(arrivo)}${come ? `   (come con ${come})` : ''}`
 }
 
-// Un PDF con la partenza e l'arrivo della sequenza dai due vertici e, su un cubo trasparente, una freccia
-// per ogni pezzo che cambia posto
-export async function creaPdfMovimenti(partenza: Colore[], mosse: Mossa[], titolo: string): Promise<jsPDF> {
-  const { jsPDF } = await import('jspdf')
-  const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+// Da una pagina nuova: la partenza e l'arrivo della sequenza dai due vertici e, su un cubo trasparente,
+// una freccia per ogni pezzo che cambia posto
+export function disegnaMovimenti(pdf: jsPDF, partenza: Colore[], mosse: Mossa[], titolo: string): void {
   const larghezza = LARGHEZZA - 2 * MARGINE
   const spostati = movimenti(mosse)
 
@@ -231,7 +229,7 @@ export async function creaPdfMovimenti(partenza: Colore[], mosse: Mossa[], titol
   pdf.setFontSize(11)
   if (spostati.length === 0) {
     pdf.text("La sequenza non cambia nessun pezzo: il cubo torna com'era.", MARGINE, y)
-    return pdf
+    return
   }
   pdf.text('Dove va ogni pezzo (cubo trasparente: i punti sono i 26 posti, più chiari quelli dietro)', MARGINE, y)
   cuboTrasparente(pdf, LARGHEZZA / 2, y + 48, spostati)
@@ -258,9 +256,4 @@ export async function creaPdfMovimenti(partenza: Colore[], mosse: Mossa[], titol
     Math.min(y + 2, ALTEZZA - MARGINE),
     { maxWidth: larghezza },
   )
-  return pdf
-}
-
-export async function scaricaPdfMovimenti(partenza: Colore[], mosse: Mossa[], titolo: string): Promise<void> {
-  ;(await creaPdfMovimenti(partenza, mosse, titolo)).save('rubik-orbit-movimenti.pdf')
 }

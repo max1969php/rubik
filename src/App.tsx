@@ -7,8 +7,7 @@ import { BarraSoluzione } from './components/BarraSoluzione.tsx'
 import { Cubo3D } from './components/Cubo3D.tsx'
 import { Orbite2D } from './components/Orbite2D.tsx'
 import { OrbiteIntrecciate } from './components/OrbiteIntrecciate.tsx'
-import { scaricaPdfMovimenti } from './confronto/pdfMovimenti.ts'
-import { scaricaPdfSequenza } from './confronto/pdfSequenza.ts'
+import { scaricaPdf } from './confronto/pdf.ts'
 import {
   cuboOrdinato,
   mescola,
@@ -206,11 +205,11 @@ function App() {
     setSoluzione({ passi: inPassi(mosse), fatti: 0, titolo })
   }
 
-  async function creaPdf(scarica: () => Promise<void>) {
+  async function renderSequenza(sequenza: Sequenza) {
     setErrore(null)
     setInPdf(true)
     try {
-      await scarica()
+      await scaricaPdf(sequenza.iniziale, inPassi(sequenza.mosse), sequenza.nome)
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
@@ -280,9 +279,6 @@ function App() {
           >
             Registra
           </button>
-          <a className="pulsante" href="#studio">
-            Studio
-          </a>
           <a className="pulsante" href="#confronto">
             Confronto
           </a>
@@ -333,12 +329,7 @@ function App() {
           bloccato={occupato || inCopia || inPdf}
           onEsegui={({ nome, iniziale, mosse }) => eseguiSequenza(nome, iniziale, mosse)}
           onRollback={({ nome, finale, mosse }) => eseguiSequenza(`Rollback di ${nome}`, finale, rollback(mosse))}
-          onRender={(sequenza) =>
-            creaPdf(() => scaricaPdfSequenza(sequenza.iniziale, inPassi(sequenza.mosse), sequenza.nome))
-          }
-          onRenderMovimenti={(sequenza) =>
-            creaPdf(() => scaricaPdfMovimenti(sequenza.iniziale, sequenza.mosse, sequenza.nome))
-          }
+          onRender={renderSequenza}
           onRinomina={rinominaSequenza}
           onElimina={eliminaSequenza}
           onScarica={() => scaricaSequenze(sequenze)}

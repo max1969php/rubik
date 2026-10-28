@@ -98,15 +98,9 @@ export function disegnaCubo(pdf: jsPDF, cubo: Colore[], cx: number, cy: number, 
 // I font standard del PDF non hanno le frecce circolari
 export const inParole = (testo: string) => testo.replace('↻', 'orario').replace('↺', 'antiorario')
 
-// Un PDF con la partenza e, per ogni passo, la mossa e il cubo come diventa dopo averla fatta,
+// Da una pagina nuova: la partenza e, per ogni passo, la mossa e il cubo come diventa dopo averla fatta,
 // visto dai due vertici opposti
-export async function creaPdfSequenza(
-  partenza: Colore[],
-  passi: Passo[],
-  titolo = 'Dal secondo al primo',
-): Promise<jsPDF> {
-  const { jsPDF } = await import('jspdf')
-  const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+export function disegnaSequenza(pdf: jsPDF, partenza: Colore[], passi: Passo[], titolo: string): void {
   const larghezzaCella = (LARGHEZZA - 2 * MARGINE) / COLONNE
   const altezzaCella = (ALTEZZA - INIZIO_GRIGLIA - MARGINE) / RIGHE
 
@@ -144,10 +138,4 @@ export async function creaPdfSequenza(
     disegnaCubo(pdf, cubo, x + larghezzaCella / 4, centro, 1)
     disegnaCubo(pdf, cubo, x + (larghezzaCella * 3) / 4, centro, -1)
   })
-
-  return pdf
-}
-
-export async function scaricaPdfSequenza(partenza: Colore[], passi: Passo[], titolo?: string): Promise<void> {
-  ;(await creaPdfSequenza(partenza, passi, titolo)).save('rubik-orbit-sequenza.pdf')
 }

@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { BarraCopia } from '../components/BarraCopia.tsx'
 import { BarraSoluzione } from '../components/BarraSoluzione.tsx'
 import { Cubo3D } from '../components/Cubo3D.tsx'
+import { Sviluppo } from '../components/Sviluppo.tsx'
 import { cuboOrdinato, mescola, ruota, type Colore, type Mossa, type Orbita } from '../modello/cubo.ts'
 import { leggiConfronto, salvaConfronto } from '../persistenza/confronto.ts'
 import { CAMERA_PREDEFINITA, leggiScena } from '../persistenza/cookie.ts'
 import { contaColori, type Passo } from '../risolutore/notazione.ts'
 import { cercaPiuCorta, interrompiRicerca, quarti, risolvi } from '../risolutore/risolvi.ts'
-import { Sviluppo } from '../studio/Sviluppo.tsx'
-import { scaricaPdfSequenza } from './pdfSequenza.ts'
+import { scaricaPdf } from './pdf.ts'
 
 const DURATA_RICERCA = 30_000 // ms
 const MINIMA = 'È la soluzione più corta possibile.'
@@ -109,7 +109,7 @@ export function Confronto() {
     if (!soluzione) return
     setInPdf(true)
     try {
-      await scaricaPdfSequenza(soluzione.partenza, soluzione.passi)
+      await scaricaPdf(soluzione.partenza, soluzione.passi, 'Dal secondo al primo')
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
     } finally {
@@ -138,7 +138,7 @@ export function Confronto() {
     const occupato = bloccato || (inPittura !== null && inPittura !== quale)
     return (
       <section className="confronto-cubo">
-        <div className="studio-testa">
+        <div className="confronto-testa">
           <h2>{titolo}</h2>
           <p className="nota">{descrizione}</p>
           <div className="azioni">
@@ -161,7 +161,7 @@ export function Confronto() {
             </button>
           </div>
         </div>
-        <div className="studio-cubo">
+        <div className="confronto-vista">
           <Cubo3D
             cubo={cubo}
             animazione={quale === 'secondo' ? animazione : null}
