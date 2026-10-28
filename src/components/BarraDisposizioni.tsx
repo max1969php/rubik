@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Disposizione } from '../persistenza/disposizioni.ts'
+import { PulsantiFile } from './PulsantiFile.tsx'
 import { Sviluppo } from './Sviluppo.tsx'
 
 interface BarraDisposizioniProps {
@@ -9,6 +10,9 @@ interface BarraDisposizioniProps {
   onUsa: (disposizione: Disposizione) => void
   onRinomina: (id: string, nome: string) => void
   onElimina: (disposizione: Disposizione) => void
+  vuoto: boolean
+  onScarica: () => void
+  onCarica: (file: File) => void
 }
 
 // Disposizioni salvate del cubo (per esempio copiate dal cubo reale): «Usa» le rimette sul cubo,
@@ -20,6 +24,9 @@ export function BarraDisposizioni({
   onUsa,
   onRinomina,
   onElimina,
+  vuoto,
+  onScarica,
+  onCarica,
 }: BarraDisposizioniProps) {
   const [nome, setNome] = useState('')
   return (
@@ -47,6 +54,7 @@ export function BarraDisposizioni({
           >
             Salva il cubo attuale
           </button>
+          <PulsantiFile vuoto={vuoto} bloccato={bloccato} onScarica={onScarica} onCarica={onCarica} />
         </div>
       </div>
       {disposizioni.length > 0 && (

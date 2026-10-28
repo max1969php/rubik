@@ -20,9 +20,10 @@ import {
   type Vettore,
 } from './modello/cubo.ts'
 import { creaSequenza, inPassi, rollback, type Sequenza } from './modello/sequenza.ts'
+import { decodifica, scarica, unisci } from './persistenza/archivio.ts'
 import { CAMERA_PREDEFINITA, leggiScena, salvaScena } from './persistenza/cookie.ts'
 import { leggiDisposizioni, salvaDisposizioni, type Disposizione } from './persistenza/disposizioni.ts'
-import { decodifica, leggiSequenze, salvaSequenze, scaricaSequenze, unisci } from './persistenza/sequenze.ts'
+import { leggiSequenze, salvaSequenze } from './persistenza/sequenze.ts'
 import { contaColori, type Passo } from './risolutore/notazione.ts'
 import { cercaPiuCorta, interrompiRicerca, quarti, risolvi } from './risolutore/risolvi.ts'
 
@@ -254,10 +255,11 @@ function App() {
       setDisposizioni(disposizioni.filter((disposizione) => disposizione.id !== id))
   }
 
-  async function caricaSequenze(file: File) {
+  async function caricaFile(file: File) {
     try {
-      const caricate = decodifica(await file.text())
-      setSequenze((presenti) => unisci(presenti, caricate))
+      const caricato = decodifica(await file.text())
+      setSequenze((presenti) => unisci(presenti, caricato.sequenze))
+      setDisposizioni((presenti) => unisci(presenti, caricato.disposizioni))
       setErrore(null)
     } catch (problema) {
       setErrore(problema instanceof Error ? problema.message : String(problema))
@@ -273,6 +275,12 @@ function App() {
     onMossa: mossaManuale,
     onPunta: setPuntata,
     onDipingi,
+  }
+
+  const file = {
+    vuoto: sequenze.length === 0 && disposizioni.length === 0,
+    onScarica: () => scarica({ sequenze, disposizioni }),
+    onCarica: caricaFile,
   }
 
   const cubo3D = {
@@ -367,6 +375,7 @@ function App() {
           onUsa={(disposizione) => cambiaCubo(disposizione.cubo)}
           onRinomina={rinominaDisposizione}
           onElimina={eliminaDisposizione}
+          {...file}
         />
       )}
       {elencoAperto && (
@@ -378,8 +387,7 @@ function App() {
           onRender={renderSequenza}
           onRinomina={rinominaSequenza}
           onElimina={eliminaSequenza}
-          onScarica={() => scaricaSequenze(sequenze)}
-          onCarica={caricaSequenze}
+          {...file}
         />
       )}
       {soluzione && (

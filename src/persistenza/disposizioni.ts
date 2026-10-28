@@ -1,5 +1,5 @@
-import { colori } from '../constants/colori.ts'
-import { cuboOrdinato, type Colore } from '../modello/cubo.ts'
+import type { Colore } from '../modello/cubo.ts'
+import { decodificaCubo } from './sequenze.ts'
 
 // Una disposizione del cubo salvata con un nome, da usare come cubo di partenza
 export interface Disposizione {
@@ -10,23 +10,28 @@ export interface Disposizione {
 
 const CHIAVE = 'rubik-orbit-disposizioni'
 
-function decodificaCubo(testo: unknown): Colore[] | null {
-  const lettere = typeof testo === 'string' ? [...testo] : []
-  const valido = lettere.length === cuboOrdinato.length && lettere.every((l) => l in colori)
-  return valido ? (lettere as Colore[]) : null
+// Il cubo è 54 lettere colore
+export function disposizioneInDati({ id, nome, cubo }: Disposizione) {
+  return { id, nome, cubo: cubo.join('') }
 }
 
-// Nel localStorage i cubi sono 54 lettere colore; le voci danneggiate si saltano
+export function decodificaDisposizione(dato: unknown): Disposizione {
+  const { id, nome, cubo } = (dato ?? {}) as Record<string, unknown>
+  if (typeof id !== 'string' || typeof nome !== 'string') throw new Error('disposizione non valida')
+  return { id, nome, cubo: decodificaCubo(cubo) }
+}
+
+// Le voci danneggiate si saltano
 export function leggiDisposizioni(): Disposizione[] {
   try {
     const dati: unknown = JSON.parse(localStorage.getItem(CHIAVE) ?? '[]')
     if (!Array.isArray(dati)) return []
     return dati.flatMap((dato) => {
-      const { id, nome, cubo } = (dato ?? {}) as Record<string, unknown>
-      const decodificato = decodificaCubo(cubo)
-      return typeof id === 'string' && typeof nome === 'string' && decodificato
-        ? [{ id, nome, cubo: decodificato }]
-        : []
+      try {
+        return [decodificaDisposizione(dato)]
+      } catch {
+        return []
+      }
     })
   } catch {
     return []
@@ -35,11 +40,8 @@ export function leggiDisposizioni(): Disposizione[] {
 
 export function salvaDisposizioni(disposizioni: Disposizione[]): void {
   try {
-    localStorage.setItem(
-      CHIAVE,
-      JSON.stringify(disposizioni.map(({ id, nome, cubo }) => ({ id, nome, cubo: cubo.join('') }))),
-    )
+    localStorage.setItem(CHIAVE, JSON.stringify(disposizioni.map(disposizioneInDati)))
   } catch {
-    // Senza spazio di archiviazione le disposizioni restano solo finché la pagina è aperta
+    // Senza localStorage le disposizioni restano solo in memoria: c'è comunque il file da scaricare
   }
 }

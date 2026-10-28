@@ -1,5 +1,5 @@
-import { useRef } from 'react'
 import type { Sequenza } from '../modello/sequenza.ts'
+import { PulsantiFile } from './PulsantiFile.tsx'
 
 interface BarraSequenzeProps {
   sequenze: Sequenza[]
@@ -9,6 +9,7 @@ interface BarraSequenzeProps {
   onRender: (sequenza: Sequenza) => void
   onRinomina: (id: string, nome: string) => void
   onElimina: (sequenza: Sequenza) => void
+  vuoto: boolean
   onScarica: () => void
   onCarica: (file: File) => void
 }
@@ -22,10 +23,10 @@ export function BarraSequenze({
   onRender,
   onRinomina,
   onElimina,
+  vuoto,
   onScarica,
   onCarica,
 }: BarraSequenzeProps) {
-  const file = useRef<HTMLInputElement>(null)
   return (
     <div className="barra">
       <div className="soluzione-testa">
@@ -35,23 +36,7 @@ export function BarraSequenze({
             : 'Sequenze salvate. «Esegui» parte dal cubo iniziale, «Rollback» da quello finale.'}
         </p>
         <div className="azioni">
-          <button type="button" disabled={sequenze.length === 0} onClick={onScarica}>
-            Scarica file
-          </button>
-          <button type="button" disabled={bloccato} onClick={() => file.current?.click()}>
-            Carica file
-          </button>
-          <input
-            ref={file}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={(evento) => {
-              const scelto = evento.target.files?.[0]
-              if (scelto) onCarica(scelto)
-              evento.target.value = '' // così lo stesso file si può ricaricare
-            }}
-          />
+          <PulsantiFile vuoto={vuoto} bloccato={bloccato} onScarica={onScarica} onCarica={onCarica} />
         </div>
       </div>
       {sequenze.length > 0 && (
