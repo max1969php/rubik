@@ -206,11 +206,11 @@ function App() {
     setElencoAperto(true)
   }
 
-  // Come per la soluzione: il cubo va allo stato di partenza e le mosse si eseguono un passo alla volta
-  function eseguiSequenza(titolo: string, partenza: Colore[], mosse: Mossa[]) {
+  // Come per la soluzione: le mosse si eseguono un passo alla volta sul cubo così com'è (per esempio una
+  // disposizione salvata appena messa con «Usa»)
+  function eseguiSequenza(titolo: string, mosse: Mossa[]) {
     setErrore(null)
-    setCubo(partenza)
-    setRiferimento(partenza)
+    setRiferimento(cubo)
     setSoluzione({ passi: inPassi(mosse), fatti: 0, titolo })
   }
 
@@ -382,8 +382,8 @@ function App() {
         <BarraSequenze
           sequenze={sequenze}
           bloccato={occupato || inCopia || inPdf}
-          onEsegui={({ nome, iniziale, mosse }) => eseguiSequenza(nome, iniziale, mosse)}
-          onRollback={({ nome, finale, mosse }) => eseguiSequenza(`Rollback di ${nome}`, finale, rollback(mosse))}
+          onEsegui={({ nome, mosse }) => eseguiSequenza(nome, mosse)}
+          onRollback={({ nome, mosse }) => eseguiSequenza(`Rollback di ${nome}`, rollback(mosse))}
           onRender={renderSequenza}
           onRinomina={rinominaSequenza}
           onElimina={eliminaSequenza}

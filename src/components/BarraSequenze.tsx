@@ -33,7 +33,7 @@ export function BarraSequenze({
         <p>
           {sequenze.length === 0
             ? 'Nessuna sequenza salvata: premi «Registra» per crearne una, o carica un file.'
-            : 'Sequenze salvate. «Esegui» parte dal cubo iniziale, «Rollback» da quello finale.'}
+            : "Sequenze salvate. «Esegui» e «Rollback» partono dal cubo così com'è (per una disposizione salvata, prima «Usa»)."}
         </p>
         <div className="azioni">
           <PulsantiFile vuoto={vuoto} bloccato={bloccato} onScarica={onScarica} onCarica={onCarica} />
