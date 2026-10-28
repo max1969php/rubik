@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { BarraCopia } from './components/BarraCopia.tsx'
+import { BarraDisposizioni } from './components/BarraDisposizioni.tsx'
 import { BarraRegistrazione } from './components/BarraRegistrazione.tsx'
 import { BarraSequenze } from './components/BarraSequenze.tsx'
 import { BarraSoluzione } from './components/BarraSoluzione.tsx'
@@ -20,6 +21,7 @@ import {
 } from './modello/cubo.ts'
 import { creaSequenza, inPassi, rollback, type Sequenza } from './modello/sequenza.ts'
 import { CAMERA_PREDEFINITA, leggiScena, salvaScena } from './persistenza/cookie.ts'
+import { leggiDisposizioni, salvaDisposizioni, type Disposizione } from './persistenza/disposizioni.ts'
 import { decodifica, leggiSequenze, salvaSequenze, scaricaSequenze, unisci } from './persistenza/sequenze.ts'
 import { contaColori, type Passo } from './risolutore/notazione.ts'
 import { cercaPiuCorta, interrompiRicerca, quarti, risolvi } from './risolutore/risolvi.ts'
@@ -68,6 +70,8 @@ function App() {
   )
   const [sequenze, setSequenze] = useState(leggiSequenze)
   const [elencoAperto, setElencoAperto] = useState(false)
+  const [disposizioni, setDisposizioni] = useState(leggiDisposizioni)
+  const [disposizioniAperte, setDisposizioniAperte] = useState(false)
   // Registrazione in corso: il cubo com'era all'avvio e le mosse fatte da allora
   const [registrazione, setRegistrazione] = useState<{ iniziale: Colore[]; mosse: Mossa[]; nome: string } | null>(
     null,
@@ -95,6 +99,10 @@ function App() {
   useEffect(() => {
     salvaSequenze(sequenze)
   }, [sequenze])
+
+  useEffect(() => {
+    salvaDisposizioni(disposizioni)
+  }, [disposizioni])
 
   function salvaCamera(posizione: Vettore) {
     camera.current = posizione
@@ -225,6 +233,27 @@ function App() {
     if (confirm(`Eliminare la sequenza «${nome}»?`)) setSequenze(sequenze.filter((sequenza) => sequenza.id !== id))
   }
 
+  function salvaDisposizione(nome: string) {
+    if (Object.values(contaColori(cubo)).some((quanti) => quanti !== 9)) {
+      setErrore('Ogni colore deve comparire esattamente 9 volte: finisci di copiare il cubo prima di salvarlo.')
+      return
+    }
+    setErrore(null)
+    const scelto = nome.trim() || `Disposizione ${disposizioni.length + 1}`
+    setDisposizioni([...disposizioni, { id: crypto.randomUUID(), nome: scelto, cubo }])
+  }
+
+  function rinominaDisposizione(id: string, nome: string) {
+    setDisposizioni(
+      disposizioni.map((disposizione) => (disposizione.id === id ? { ...disposizione, nome } : disposizione)),
+    )
+  }
+
+  function eliminaDisposizione({ id, nome }: Disposizione) {
+    if (confirm(`Eliminare la disposizione «${nome}»?`))
+      setDisposizioni(disposizioni.filter((disposizione) => disposizione.id !== id))
+  }
+
   async function caricaSequenze(file: File) {
     try {
       const caricate = decodifica(await file.text())
@@ -282,6 +311,13 @@ function App() {
           <a className="pulsante" href="#confronto">
             Confronto
           </a>
+          <button
+            type="button"
+            aria-pressed={disposizioniAperte}
+            onClick={() => setDisposizioniAperte(!disposizioniAperte)}
+          >
+            Disposizioni ({disposizioni.length})
+          </button>
           <button type="button" aria-pressed={elencoAperto} onClick={() => setElencoAperto(!elencoAperto)}>
             Sequenze ({sequenze.length})
           </button>
@@ -321,6 +357,16 @@ function App() {
           onSalva={salvaRegistrazione}
           onScarta={() => setRegistrazione(null)}
           onPunta={setPuntata}
+        />
+      )}
+      {disposizioniAperte && (
+        <BarraDisposizioni
+          disposizioni={disposizioni}
+          bloccato={occupato}
+          onSalva={salvaDisposizione}
+          onUsa={(disposizione) => cambiaCubo(disposizione.cubo)}
+          onRinomina={rinominaDisposizione}
+          onElimina={eliminaDisposizione}
         />
       )}
       {elencoAperto && (

@@ -450,6 +450,11 @@ input[type='text'] {
   }
 }
 
+.disposizioni .sviluppo {
+  flex: none;
+  width: 72px;
+}
+
 .confronto-testa {
   display: flex;
   flex-direction: column;
